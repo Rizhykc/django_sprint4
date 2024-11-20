@@ -1,9 +1,7 @@
+from http import HTTPStatus
+
 from django.shortcuts import render
 
 
-def about(request):
-    return render(request, 'pages/about.html')
-
-
-def rules(request):
-    return render(request, 'pages/rules.html')
+def csrf_failure(request, reason=''):
+    return render(request, 'pages/403csrf.html', status=HTTPStatus.FORBIDDEN)

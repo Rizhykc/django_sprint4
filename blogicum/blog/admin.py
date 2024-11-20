@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from blog.models import Category, Location, Post
+from blog.models import Category, Comment, Location, Post
 
 
 def get_model_fields(model):
@@ -51,3 +51,17 @@ class LocationAdmin(BlogAdmin):
         'is_published',
         'created_at',
     )
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+
+    list_display = (
+        'text',
+        'post',
+        'created_at',
+        'author'
+    )
+
+
+admin.site.empty_value_display = 'Не задано'

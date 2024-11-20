@@ -1,6 +1,5 @@
-from django.db import models
 from django.contrib.auth import get_user_model
-
+from django.db import models
 
 User = get_user_model()
 
@@ -67,31 +66,59 @@ class Post(PublishedBaseModel):
         )
     )
     author = models.ForeignKey(
-        to=User,
+        User,
         on_delete=models.CASCADE,
-        related_name='posts',
         verbose_name='Автор публикации',
 
     )
     location = models.ForeignKey(
-        to=Location,
+        Location,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='posts',
         blank=True,
         verbose_name='Местоположение',
     )
     category = models.ForeignKey(
-        to=Category,
+        Category,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='posts',
         verbose_name='Категория',
+    )
+    image = models.ImageField(
+        upload_to='post_images',
+        blank=True,
+        verbose_name='Изображение к публикации'
     )
 
     class Meta:
+        default_related_name = 'posts'
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
 
     def __str__(self):
         return self.title
+
+
+class Comment(PublishedBaseModel):
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Автор комментария',
+    )
+    text = models.TextField(verbose_name='Текст')
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        verbose_name='Комментарий',
+
+    )
+
+    class Meta:
+        default_related_name = 'comments'
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'Комментарии'
+        ordering = ('created_at',)
+
+    def __str__(self):
+        return (f'{self.text}'
+                f'{self.author}')
