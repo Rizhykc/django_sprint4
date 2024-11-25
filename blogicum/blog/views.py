@@ -1,18 +1,25 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.generic import ListView
 
-from blog.constants import POSTS_MAIN_PAGE
 from blog.forms import CommentForm, PostForm, ProfileForm
 from blog.models import Comment, Post
 from blog.utils import posts_pagination, query_category, query_post
 
 
+# from django.contrib.auth.mixins import LoginRequiredMixin
+# from django.views.generic import UpdateView
+# from django.urls import reverse, reverse_lazy
+
+
+
 def index(request):
 
-    post_list = query_post().order_by('-pub_date')[:POSTS_MAIN_PAGE]
-    context = {'post_list': post_list}
+    page_obj = posts_pagination(request, query_post(
+        filters=True,
+        comments=True
+    ))
+    context = {'page_obj':page_obj}
     return render(request, 'blog/index.html', context)
 
 
@@ -22,22 +29,29 @@ def category_posts(request, category_slug):
         query_category(),
         slug=category_slug,
     )
-    post_list = (
-        query_post()
-        .filter(category=category)
-        .order_by("-pub_date")
+    page_obj = posts_pagination(
+        request,
+        query_post(user=category.posts)
     )
-    context = {'category': category, 'post_list': post_list}
+    context = {'category': category, 'page_obj': page_obj}
     return render(request, 'blog/category.html', context)
 
 
 def post_detail(request, id):
 
-    post_list = get_object_or_404(
-        query_post(),
+    post = get_object_or_404(
+        Post,
         pk=id,
     )
-    context = {'post': post_list}
+    if post.author != request.user:
+        post = get_object_or_404(query_post(), id=id)
+    comments = Comment.objects.select_related('author').filter(post=post)
+    form = CommentForm()
+    context = {
+        'post': post,
+        'form': form,
+        'comments': comments,
+    }
     return render(request, 'blog/detail.html', context)
 
 
@@ -83,36 +97,67 @@ def delete_posts(request, id_post):
 
 
 def profile(request, username):
+
     profile = get_object_or_404(User, username=username)
-    if profile == request.user:
-        posts = query_post(user=profile.posts, filters=False)
-    else:
-        posts = query_post(user=profile.posts)
-    object_page = posts_pagination(request, posts)
+    posts = query_post(user=profile.posts) if profile != request.user else query_post(user=profile.posts, filters=False)
+
+    page_obj = posts_pagination(request, posts)
     context = {
         'profile': profile,
-        'object_page': object_page
+        'page_obj': page_obj,
     }
+
     return render(request, 'blog/profile.html', context)
 
 
+@login_required
 def edit_profile(request):
+
     form = ProfileForm(request.POST or None, instance=request.user)
     if form.is_valid():
         form.save()
         return redirect('blog:profile', username=request.user.username)
     return render(request, 'blog/user.html', {'form': form})
 
-# class ProfileListView(ListView):
-#     model = User
-#     template_name = 'blog/profile.html'
-#     ordering = 'id'
-#     paginate_by = 10
 
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context["profile"] = get_object_or_404(
-#             User,
-#             username=self.kwargs.get('username')
-#         )
-#         return context
+@login_required
+def add_comment(request, id_post):
+    """Добавление комментария публикации."""
+    post = get_object_or_404(Post, id=id_post)
+    form = CommentForm(request.POST or None)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+    return redirect('blog:post_detail', id=id_post)
+
+
+
+@login_required
+def edit_comment(request, id_post, id_comment):
+
+    comment = get_object_or_404(Comment,
+                                id=id_comment,
+                                post_id=id_post,
+                                author=request.user)
+    form = CommentForm(request.POST or None, instance=comment)
+    context = {'form': form, 'comment': comment}
+    if form.is_valid():
+        form.save()
+        return redirect('blog:post_detail', id=id_post)
+    return render(request, 'blog/comment.html', context)
+
+
+@login_required
+def delete_comment(request, id_post, id_comment):
+
+    comment = get_object_or_404(Comment,
+                                id=id_comment,
+                                post_id=id_post,
+                                author=request.user)
+    context = {'comment': comment}
+    if request.method == 'POST':
+        comment.delete()
+        return redirect('blog:post_detail', id=id_post)
+    return render(request, 'blog/comment.html', context)

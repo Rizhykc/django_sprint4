@@ -23,7 +23,6 @@ INSTALLED_APPS = [
 
     'pages.apps.PagesConfig',
     'blog.apps.BlogConfig',
-    'users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [
@@ -90,15 +89,15 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_URL = '/static/'
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+LOGIN_REDIRECT_URL = 'blog:index'
 
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
