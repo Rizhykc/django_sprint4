@@ -2,42 +2,30 @@ from django.core.paginator import Paginator
 from django.db.models import Count
 from django.utils import timezone
 
-from blog.models import Category, Post
-
-
-def query_post(user=Post.objects,
-               filters=True,
-               comments=True):
-
-    query_set = (
-        user.select_related(
-            'category',
-            'location',
-            'author',
-        )
-    )
-    if filters:
-        query_set = query_set.filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True,
-        )
-    if comments:
-        query_set = query_set.annotate(comments_cout=Count('comments'))
-    return query_set
-
-
-def query_category():
-    query_set = Category.objects.filter(
-        is_published=True
-    )
-    return query_set
+from blog.models import Post
 
 
 def posts_pagination(request, posts):
-
-    page_num = request.GET.get(
-        'page', 1
+    page_number = request.GET.get(
+        'page',
+        1
     )
     paginator = Paginator(posts, 10)
-    return paginator.get_page(page_num)
+    return paginator.get_page(page_number)
+
+
+def query_post(
+        manager=Post.objects,
+        filters=True,
+        with_comments=True
+):
+    queryset = manager.select_related('author', 'location', 'category')
+    if filters:
+        queryset = queryset.filter(
+            is_published=True,
+            pub_date__lt=timezone.now(),
+            category__is_published=True
+        )
+    if with_comments:
+        queryset = queryset.annotate(comment_count=Count('comments'))
+    return queryset.order_by('-pub_date')

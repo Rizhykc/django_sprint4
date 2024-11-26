@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.utils.text import Truncator
 from django.db import models
 
 User = get_user_model()
@@ -37,7 +38,8 @@ class Category(PublishedBaseModel):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return self.title
+        title = str(self.title)
+        return title[:20]
 
 
 class Location(PublishedBaseModel):
@@ -54,32 +56,27 @@ class Location(PublishedBaseModel):
 
 
 class Post(PublishedBaseModel):
-    title = models.CharField(
-        max_length=256, unique=True, verbose_name='Заголовок',
-    )
+    title = models.CharField(max_length=256, verbose_name='Заголовок')
     text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
-        help_text=(
-            'Если установить дату и время в будущем — '
-            'можно делать отложенные публикации.'
-        )
+        help_text='Если установить дату и время в будущем — '
+        'можно делать отложенные публикации.',
     )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор публикации',
-
     )
     location = models.ForeignKey(
-        Location,
+        'Location',
         on_delete=models.SET_NULL,
         null=True,
-        blank=True,
         verbose_name='Местоположение',
+        blank=True,
     )
     category = models.ForeignKey(
-        Category,
+        'Category',
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Категория',
@@ -96,29 +93,33 @@ class Post(PublishedBaseModel):
         verbose_name_plural = 'Публикации'
 
     def __str__(self):
-        return self.title
+        return (Truncator(self.title).words(4))
 
 
 class Comment(PublishedBaseModel):
+    text = models.TextField(verbose_name='Текст комментария')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор комментария',
+        verbose_name='Автор',
+        related_name='comments'
     )
-    text = models.TextField(verbose_name='Текст')
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         verbose_name='Комментарий',
-
+        related_name='comments'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Добавлено'
     )
 
     class Meta:
-        default_related_name = 'comments'
         verbose_name = 'комментарий'
-        verbose_name_plural = 'Комментарии'
+        verbose_name_plural = 'Комментарий'
         ordering = ('created_at',)
 
     def __str__(self):
-        return (f'{self.text}'
-                f'{self.author}')
+        text = str(self.text)
+        return text[:20]
