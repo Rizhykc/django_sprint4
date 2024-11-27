@@ -1,4 +1,3 @@
-
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
@@ -10,10 +9,7 @@ from blog.utils import posts_pagination, query_post
 
 def index(request):
 
-    page_obj = posts_pagination(request, query_post(
-        filters=True,
-        with_comments=True
-    ))
+    page_obj = posts_pagination(request, query_post())
     context = {'page_obj': page_obj}
     return render(request, 'blog/index.html', context)
 
@@ -81,12 +77,10 @@ def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     if request.user != post.author:
         return redirect('blog:post_detail', post_id)
+    form = PostForm(request.POST or None, instance=post)
     if request.method == 'POST':
-        form = PostForm(request.POST or None, instance=post)
         post.delete()
         return redirect('blog:index')
-    else:
-        form = PostForm(instance=post)
     context = {'form': form}
     return render(request, 'blog/create.html', context)
 
@@ -94,11 +88,11 @@ def delete_post(request, post_id):
 def profile(request, username):
 
     profile = get_object_or_404(User, username=username)
-    if profile == request.user:
-        posts = query_post(manager=profile.posts,
-                           filters=False,)
-    else:
-        posts = query_post(manager=profile.posts,)
+    posts = (
+        query_post(manager=profile.posts, filters=False)
+        if profile == request.user
+        else query_post(manager=profile.posts)
+    )
     page_obj = posts_pagination(request, posts)
     context = {'profile': profile,
                'page_obj': page_obj}
@@ -108,13 +102,10 @@ def profile(request, username):
 @login_required
 def edit_profile(request):
 
-    if request.method == 'POST':
-        form = ProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            return redirect('blog:profile', request.user)
-    else:
-        form = ProfileForm(instance=request.user)
+    form = ProfileForm(request.POST, instance=request.user)
+    if form.is_valid():
+        form.save()
+        return redirect('blog:profile', request.user)
     context = {'form': form}
     return render(request, 'blog/user.html', context)
 
@@ -132,20 +123,16 @@ def add_comment(request, post_id):
     return redirect('blog:post_detail', post_id)
 
 
-
 @login_required
 def edit_comment(request, post_id, comment_id):
 
     comment = get_object_or_404(Comment, id=comment_id)
     if request.user != comment.author:
         return redirect('blog:post_detail', post_id)
-    if request.method == "POST":
-        form = CommentForm(request.POST or None, instance=comment)
-        if form.is_valid():
-            form.save()
-            return redirect('blog:post_detail', post_id)
-    else:
-        form = CommentForm(instance=comment)
+    form = CommentForm(request.POST or None, instance=comment)
+    if form.is_valid():
+        form.save()
+        return redirect('blog:post_detail', post_id)
     context = {'form': form, 'comment': comment}
     return render(request, 'blog/comment.html', context)
 

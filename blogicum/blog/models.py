@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.utils.text import Truncator
 from django.db import models
+from django.urls import reverse
+from django.utils.text import Truncator
+
+from blog.constants import MAX_LENGTH, MAX_TEXT, MAX_TITLE, MAX_WORDS_LENGTH
 
 User = get_user_model()
 
@@ -20,7 +23,7 @@ class PublishedBaseModel(models.Model):
 
 class Category(PublishedBaseModel):
     title = models.CharField(
-        max_length=256, unique=True,
+        max_length=MAX_LENGTH, unique=True,
         verbose_name='Заголовок',
     )
     description = models.TextField(verbose_name='Описание')
@@ -38,13 +41,12 @@ class Category(PublishedBaseModel):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        title = str(self.title)
-        return title[:20]
+        return (Truncator(self.title).words(MAX_WORDS_LENGTH))
 
 
 class Location(PublishedBaseModel):
     name = models.CharField(
-        max_length=256, verbose_name='Название места',
+        max_length=MAX_LENGTH, verbose_name='Название места',
     )
 
     class Meta:
@@ -52,16 +54,18 @@ class Location(PublishedBaseModel):
         verbose_name_plural = 'Местоположения'
 
     def __str__(self):
-        return self.name
+        return (Truncator(self.name).words(MAX_WORDS_LENGTH))
 
 
 class Post(PublishedBaseModel):
-    title = models.CharField(max_length=256, verbose_name='Заголовок')
+    title = models.CharField(max_length=MAX_LENGTH, verbose_name='Заголовок')
     text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(
         verbose_name='Дата и время публикации',
-        help_text='Если установить дату и время в будущем — '
-        'можно делать отложенные публикации.',
+        help_text=(
+            'Если установить дату и время в будущем — '
+            'можно делать отложенные публикации.',
+        )
     )
     author = models.ForeignKey(
         User,
@@ -69,14 +73,14 @@ class Post(PublishedBaseModel):
         verbose_name='Автор публикации',
     )
     location = models.ForeignKey(
-        'Location',
+        Location,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Местоположение',
         blank=True,
     )
     category = models.ForeignKey(
-        'Category',
+        Category,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Категория',
@@ -92,8 +96,11 @@ class Post(PublishedBaseModel):
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
 
+    def get_absolute_url(self):
+        return reverse('blog:post_detail', kwargs={'post_id': self.pk})
+
     def __str__(self):
-        return (Truncator(self.title).words(4))
+        return (Truncator(self.title).words(MAX_WORDS_LENGTH))
 
 
 class Comment(PublishedBaseModel):
@@ -102,24 +109,20 @@ class Comment(PublishedBaseModel):
         User,
         on_delete=models.CASCADE,
         verbose_name='Автор',
-        related_name='comments'
     )
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
         verbose_name='Комментарий',
-        related_name='comments'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлено'
     )
 
     class Meta:
+        default_related_name = 'comments'
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарий'
         ordering = ('created_at',)
 
     def __str__(self):
-        text = str(self.text)
-        return text[:20]
+        return (f'Комментарий автора {self.author}'
+                f'к посту "{self.post.title[:MAX_TITLE]}",'
+                f'текст: {self.text[:MAX_TEXT]}')

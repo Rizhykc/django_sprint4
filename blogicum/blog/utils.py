@@ -2,15 +2,16 @@ from django.core.paginator import Paginator
 from django.db.models import Count
 from django.utils import timezone
 
+from blog.constants import DEFAULT_NUM_PAGE, POSTS_ON_PAGE
 from blog.models import Post
 
 
 def posts_pagination(request, posts):
     page_number = request.GET.get(
         'page',
-        1
+        DEFAULT_NUM_PAGE
     )
-    paginator = Paginator(posts, 10)
+    paginator = Paginator(posts, POSTS_ON_PAGE)
     return paginator.get_page(page_number)
 
 

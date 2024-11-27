@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import include, path
 
 from blog import views
 
@@ -19,7 +19,7 @@ posts = [
 
 profile = [
     path('edit_profile/', views.edit_profile, name='edit_profile'),
-    path('<slug:username>/', views.profile, name='profile'),
+    path('<str:username>/', views.profile, name='profile'),
 ]
 
 urlpatterns = [
