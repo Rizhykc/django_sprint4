@@ -3,7 +3,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.text import Truncator
 
-from blog.constants import MAX_LENGTH, MAX_TEXT, MAX_TITLE, MAX_WORDS_LENGTH
+from blog.constants import MAX_LENGTH, MAX_TEXT, MAX_WORDS_LENGTH
 
 User = get_user_model()
 
@@ -96,11 +96,11 @@ class Post(PublishedBaseModel):
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
 
-    def get_absolute_url(self):
-        return reverse('blog:post_detail', kwargs={'post_id': self.pk})
-
     def __str__(self):
         return (Truncator(self.title).words(MAX_WORDS_LENGTH))
+
+    def get_absolute_url(self):
+        return reverse('blog:post_detail', kwargs={'post_id': self.pk})
 
 
 class Comment(PublishedBaseModel):
@@ -124,5 +124,5 @@ class Comment(PublishedBaseModel):
 
     def __str__(self):
         return (f'Комментарий автора {self.author}'
-                f'к посту "{self.post.title[:MAX_TITLE]}",'
+                f'к посту "{self.post}",'
                 f'текст: {self.text[:MAX_TEXT]}')
