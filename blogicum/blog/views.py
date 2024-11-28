@@ -88,9 +88,7 @@ def delete_post(request, post_id):
 def profile(request, username):
 
     profile = get_object_or_404(User, username=username)
-    if profile != request.user:
-        posts = query_post(manager=profile.posts)
-    posts = query_post(manager=profile.posts, filters=False)
+    posts = query_post(manager=profile.posts, filters=profile != request.user)
     page_obj = posts_pagination(request, posts)
     context = {'profile': profile,
                'page_obj': page_obj}
